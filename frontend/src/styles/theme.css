@@ -1,0 +1,80 @@
+/* ============================================================
+   RegComply-IR — Theme Config
+   Update this file to change fonts, colors, and visual tokens.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Crimson+Pro:wght@300..700&display=swap');
+
+:root {
+  --navy-950: #f7f4ef;
+  --navy-900: #f1ede6;
+  --navy-800: #e6e0d7;
+  --navy-700: #d9d1c4;
+  --navy-600: #c9c0b0;
+  --amber-400: #b6862c;
+  --amber-300: #c79a47;
+  --amber-200: #e4c781;
+  --slate-50:  #2e2a24;
+  --slate-100: #3a342c;
+  --slate-300: #4b4338;
+  --slate-500: #6b6154;
+  --slate-600: #7a6f61;
+  --green-400: #2b9c6a;
+  --red-400:   #c34a4a;
+
+  --font-display: 'Libre Baskerville', 'Times New Roman', serif;
+  --font-mono:    'Crimson Pro', 'Times New Roman', serif;
+  --font-body:    'Crimson Pro', 'Times New Roman', serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-card: 0 12px 28px rgba(62,53,40,0.12), 0 2px 6px rgba(62,53,40,0.08);
+  --shadow-glow: 0 0 40px rgba(182,134,44,0.12);
+  --shadow-drawer: 0 0 40px rgba(62,53,40,0.18);
+  --shadow-pop: 0 12px 30px rgba(62,53,40,0.18);
+  --border-subtle: 1px solid rgba(70,60,48,0.12);
+  --border-amber:  1px solid rgba(182,134,44,0.35);
+  --border-amber-soft: 1px solid rgba(182,134,44,0.22);
+
+  --surface-page: #f7f4ef;
+  --surface-topbar: rgba(247,244,239,0.92);
+  --surface-panel: #f1ede6;
+  --surface-panel-strong: #e6e0d7;
+  --surface-input: #fbf9f6;
+  --surface-control: #f3eee7;
+  --surface-chip: #f5f1ea;
+  --surface-card: #faf7f3;
+  --surface-card-hover: #f1ece5;
+  --surface-card-active: #e8e1d8;
+  --surface-ai-start: #fbf8f3;
+  --surface-ai-end: #ece5da;
+  --surface-doc: #fbf9f6;
+  --surface-doc-header: #f2ede5;
+  --surface-minimap: rgba(247,244,239,0.96);
+  --surface-backdrop: rgba(90,79,66,0.22);
+  --surface-badge: rgba(182,134,44,0.12);
+  --surface-badge-strong: rgba(182,134,44,0.18);
+  --surface-highlight: rgba(182,134,44,0.22);
+  --surface-highlight-strong: rgba(182,134,44,0.32);
+  --surface-error: rgba(195,74,74,0.12);
+  --surface-error-border: rgba(195,74,74,0.3);
+  --accent-border: rgba(182,134,44,0.35);
+  --accent-fill-soft: rgba(182,134,44,0.08);
+
+  --text-on-amber: #ffffff;
+  --text-error: #c34a4a;
+  --text-muted: #6b6154;
+  --text-subtle: #7a6f61;
+
+  --line-grid: rgba(182,134,44,0.08);
+  --glow-spot-1: rgba(182,134,44,0.14);
+  --glow-spot-2: rgba(201,192,176,0.4);
+  --shimmer-low: rgba(255,255,255,0.35);
+  --shimmer-mid: rgba(255,255,255,0.6);
+
+  --ring-focus: 0 0 0 3px rgba(182,134,44,0.18);
+
+  --transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}

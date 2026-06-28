@@ -1,0 +1,697 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <div class="app-shell">
+    <!-- ── Top Bar ─────────────────────────────────────── -->
+    <header class="top-bar">
+      <a href="/" class="top-bar__logo" aria-label="RegComply-IR Home">
+        <div class="top-bar__logo-mark">RC</div>
+        <span class="top-bar__wordmark">RegComply<span>-IR</span></span>
+      </a>
+      <div class="top-bar__meta">
+        <div class="status-pill">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="api-status">ADGM Engine Ready</span>
+        </div>
+        <div class="status-pill mono" style="display:none" id="query-counter">
+          <span>0 queries</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Hero / Search ──────────────────────────────── -->
+    <section class="hero" id="hero" aria-label="Search section">
+      <p class="hero__eyebrow">Abu Dhabi Global Market · Regulatory Intelligence</p>
+      <h1 class="hero__title">Ask anything about <em>ADGM</em> regulations</h1>
+      <p class="hero__subtitle">
+        Hybrid retrieval meets LLM synthesis. Search across AML, FSRA, and ADGM rulebooks — grounded in source text.
+      </p>
+
+      <form class="search-form" id="search-form" role="search" novalidate>
+        <div class="search-input-wrap">
+          <input
+            type="text"
+            class="search-input"
+            id="query-input"
+            placeholder='e.g. "What are the penalties for AML non-compliance?"'
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-label="Regulatory query"
+          />
+          <div class="search-controls">
+            <select class="algo-select" id="algo-select" aria-label="Retrieval algorithm">
+              <option value="hybrid">HYBRID</option>
+              <option value="bm25">BM25</option>
+              <option value="dense">DENSE</option>
+            </select>
+            <button type="submit" class="search-btn" id="search-btn">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="6.5" cy="6.5" r="4.5"/>
+                <path d="M10.5 10.5 14 14"/>
+              </svg>
+              Search
+            </button>
+          </div>
+        </div>
+
+        <div class="search-tags" id="search-tags" aria-label="Example queries">
+          <button type="button" class="search-tag" data-query="What are the penalties for AML non-compliance?">AML penalties</button>
+          <button type="button" class="search-tag" data-query="Requirements for beneficial ownership disclosure">Beneficial ownership</button>
+          <button type="button" class="search-tag" data-query="KYC requirements for high risk customers">KYC — high risk</button>
+          <button type="button" class="search-tag" data-query="Suspicious transaction reporting obligations">STR obligations</button>
+          <button type="button" class="search-tag" data-query="ADGM licensing requirements for financial services">ADGM licensing</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ── Results Layout ─────────────────────────────── -->
+    <main class="results-layout" id="results-layout" aria-live="polite" aria-label="Search results">
+
+      <!-- AI Answer -->
+      <section class="ai-answer" id="ai-answer-section" style="display:none" aria-label="AI-generated answer">
+        <div class="ai-answer__header">
+          <div class="ai-badge">AI Overview</div>
+          <span id="ai-model-label" class="mono" style="font-size:10px; color: var(--slate-600)">LLaMA-3.1-8B</span>
+        </div>
+        <div id="ai-answer-body">
+          <!-- Thinking state -->
+          <div id="ai-thinking" style="display:none">
+            <div class="thinking-indicator" role="status" aria-label="AI is generating answer">
+              <div class="thinking-dots">
+                <span></span><span></span><span></span>
+              </div>
+              AI is synthesising an answer…
+            </div>
+            <div style="margin-top:16px">
+              <div class="shimmer shimmer-line --w90"></div>
+              <div class="shimmer shimmer-line --w70"></div>
+              <div class="shimmer shimmer-line --w80"></div>
+              <div class="shimmer shimmer-line --w50"></div>
+            </div>
+          </div>
+
+          <!-- Answer text -->
+          <p class="ai-answer__text" id="ai-answer-text" style="display:none"></p>
+
+          <!-- Error -->
+          <div class="error-banner" id="ai-error" style="display:none" role="alert">
+            ⚠ Unable to generate AI answer. Showing search results only.
+          </div>
+        </div>
+
+        <div class="ai-answer__sources" id="ai-sources" style="display:none">
+          <span class="sources-label">Sources</span>
+          <span id="ai-source-chips"></span>
+        </div>
+      </section>
+
+      <!-- Results Column -->
+      <div class="results-col">
+        <div class="results-header">
+          <p class="results-count" id="results-count" aria-live="polite"></p>
+          <span class="mono" id="results-system" style="font-size: 10px; color: var(--slate-600)"></span>
+        </div>
+
+        <!-- Search loading skeleton -->
+        <div id="results-loading" style="display:none" aria-label="Loading results" role="status">
+          {Array.from({length: 4}).map((_, i) => (
+            <div class="result-card" style={`animation-delay: ${i * 80}ms`}>
+              <div style="display:flex; justify-content:space-between; margin-bottom:12px">
+                <div class="shimmer" style="height:18px; width:120px; border-radius:4px"></div>
+                <div class="shimmer" style="height:18px; width:80px; border-radius:4px"></div>
+              </div>
+              <div class="shimmer shimmer-line --w90"></div>
+              <div class="shimmer shimmer-line --w70"></div>
+              <div class="shimmer shimmer-line --w80"></div>
+            </div>
+          ))}
+        </div>
+
+        <!-- Error state -->
+        <div class="error-banner" id="search-error" style="display:none" role="alert">
+          ⚠ <span id="search-error-msg">Search failed. Is the backend running at localhost:8000?</span>
+        </div>
+
+        <!-- Results list -->
+        <div id="results-list" role="list" aria-label="Search result cards"></div>
+      </div>
+
+      <!-- Document Pane -->
+      <div class="doc-backdrop" id="doc-backdrop" aria-hidden="true"></div>
+      <aside class="doc-pane" id="doc-pane" aria-label="Document viewer" aria-hidden="true">
+        <div class="doc-pane__inner">
+          <div class="doc-pane__header">
+            <span class="doc-pane__title" id="doc-pane-title">No document selected</span>
+            <div class="doc-pane__actions">
+              <button class="doc-pane__toggle" id="doc-pane-expand" aria-pressed="false">Full width</button>
+              <button class="doc-pane__close" id="doc-pane-close" aria-label="Close document pane">Close</button>
+            </div>
+          </div>
+          <div class="doc-minimap" id="doc-minimap" aria-label="Document outline"></div>
+          <!-- Loading -->
+          <div id="doc-loading" style="display:none; padding:20px" role="status" aria-label="Loading document">
+            <div class="shimmer shimmer-line --w70" style="margin-bottom:14px"></div>
+            <div class="shimmer shimmer-line --w90"></div>
+            <div class="shimmer shimmer-line --w80"></div>
+            <div class="shimmer shimmer-line --w60"></div>
+            <div class="shimmer shimmer-line --w90" style="margin-top:14px"></div>
+            <div class="shimmer shimmer-line --w70"></div>
+          </div>
+          <!-- Content -->
+          <div class="doc-pane__content" id="doc-content" style="display:none"></div>
+          <!-- Empty -->
+          <div class="doc-pane__empty" id="doc-empty">
+            <div class="doc-pane__empty-icon" aria-hidden="true">▤</div>
+            <p>Click a result card to read<br/>the full regulatory document<br/>with your passage highlighted.</p>
+          </div>
+          <!-- Error -->
+          <div class="doc-pane__empty" id="doc-error" style="display:none">
+            <div class="doc-pane__empty-icon" aria-hidden="true">⚠</div>
+            <p id="doc-error-msg">Failed to load document.</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span>RegComply-IR · ADGM Regulatory Intelligence Engine</span>
+      <nav class="footer__links" aria-label="Footer links">
+        <a href="https://www.adgm.com" target="_blank" rel="noopener noreferrer">ADGM</a>
+        <a href="https://www.fsra.ae" target="_blank" rel="noopener noreferrer">FSRA</a>
+        <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer">API Docs</a>
+      </nav>
+    </footer>
+  </div>
+</Layout>
+
+<script>
+  /* ============================================================
+     RegComply-IR — Client Logic
+     Zero external dependencies. Native fetch only.
+     ============================================================ */
+
+  const BASE_URL = 'http://localhost:8000/api';
+
+  // ── State ────────────────────────────────────────────────────
+  let state = {
+    query: '',
+    system: 'hybrid',
+    results: [],
+    aiAnswer: null,
+    activeCardIndex: null,
+    queryCount: 0,
+    activeSnippet: '',
+  };
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  const hero             = document.getElementById('hero');
+  const searchForm       = document.getElementById('search-form');
+  const searchFormEl     = document.getElementById('search-form');
+  const queryInput       = document.getElementById('query-input');
+  const algoSelect       = document.getElementById('algo-select');
+  const resultsLayout    = document.getElementById('results-layout');
+  const aiSection        = document.getElementById('ai-answer-section');
+  const aiThinking       = document.getElementById('ai-thinking');
+  const aiAnswerText     = document.getElementById('ai-answer-text');
+  const aiError          = document.getElementById('ai-error');
+  const aiSources        = document.getElementById('ai-sources');
+  const aiSourceChips    = document.getElementById('ai-source-chips');
+  const resultsCount     = document.getElementById('results-count');
+  const resultsSystem    = document.getElementById('results-system');
+  const resultsLoading   = document.getElementById('results-loading');
+  const searchError      = document.getElementById('search-error');
+  const searchErrorMsg   = document.getElementById('search-error-msg');
+  const resultsList      = document.getElementById('results-list');
+  const docPane          = document.getElementById('doc-pane');
+  const docBackdrop      = document.getElementById('doc-backdrop');
+  const docPaneTitle     = document.getElementById('doc-pane-title');
+  const docLoading       = document.getElementById('doc-loading');
+  const docContent       = document.getElementById('doc-content');
+  const docMinimap       = document.getElementById('doc-minimap');
+  const docEmpty         = document.getElementById('doc-empty');
+  const docError         = document.getElementById('doc-error');
+  const docErrorMsg      = document.getElementById('doc-error-msg');
+  const docPaneClose     = document.getElementById('doc-pane-close');
+  const docPaneExpand    = document.getElementById('doc-pane-expand');
+  const apiStatus        = document.getElementById('api-status');
+  const queryCounter     = document.getElementById('query-counter');
+
+  // ── Tag buttons ───────────────────────────────────────────────
+  document.querySelectorAll('.search-tag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = btn.getAttribute('data-query');
+      if (q) {
+        queryInput.value = q;
+        queryInput.focus();
+      }
+    });
+  });
+
+  // ── Form submit ───────────────────────────────────────────────
+  searchFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = queryInput.value.trim();
+    if (!q) { queryInput.focus(); return; }
+
+    state.query  = q;
+    state.system = algoSelect.value;
+    state.activeCardIndex = null;
+
+    transitionToResultsView();
+    await Promise.all([fetchSearch(), fetchGenerate()]);
+    updateQueryCounter();
+  });
+
+  // ── Close doc pane ─────────────────────────────────────────────
+  docPaneClose.addEventListener('click', () => {
+    closeDocPane();
+    resetDocPane();
+    state.activeCardIndex = null;
+    document.querySelectorAll('.result-card').forEach(c => c.classList.remove('--active'));
+  });
+
+  docBackdrop.addEventListener('click', () => {
+    closeDocPane();
+  });
+
+  docPaneExpand.addEventListener('click', () => {
+    toggleDocPaneSize();
+  });
+
+  // ── View transition ────────────────────────────────────────────
+  function transitionToResultsView() {
+    hero.classList.add('--compact');
+    searchFormEl.classList.add('--compact');
+    document.getElementById('search-tags').style.display = 'none';
+    document.querySelector('.hero__eyebrow').style.display = 'none';
+    document.querySelector('.hero__title').style.display = 'none';
+    document.querySelector('.hero__subtitle').style.display = 'none';
+
+    resultsLayout.classList.add('--active');
+    aiSection.style.display = 'block';
+
+    // Reset states
+    showAiThinking();
+    showResultsLoading();
+    closeDocPane();
+    resetDocPane();
+    clearResults();
+    hideErrors();
+  }
+
+  // ── Fetch search results ───────────────────────────────────────
+  async function fetchSearch() {
+    const params = new URLSearchParams({
+      query: state.query,
+      system: state.system,
+      k: '10',
+    });
+
+    try {
+      const res = await fetch(`${BASE_URL}/search?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      state.results = data.results || [];
+      renderResults(data);
+    } catch (err) {
+      console.error('[Search]', err);
+      resultsLoading.style.display = 'none';
+      searchError.style.display = 'flex';
+      searchErrorMsg.textContent = `Search failed: ${err.message}. Is the backend running at localhost:8000?`;
+    }
+  }
+
+  // ── Fetch AI generation ────────────────────────────────────────
+  async function fetchGenerate() {
+    const params = new URLSearchParams({
+      query: state.query,
+      k: '5',
+    });
+
+    try {
+      const res = await fetch(`${BASE_URL}/generate?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      renderAiAnswer(data);
+    } catch (err) {
+      console.error('[Generate]', err);
+      showAiError();
+    }
+  }
+
+  // ── Render AI answer ───────────────────────────────────────────
+  function renderAiAnswer(data) {
+    aiThinking.style.display = 'none';
+    aiAnswerText.style.display = 'block';
+    aiAnswerText.textContent = data.generated_answer || 'No answer generated.';
+
+    if (data.sources_used && data.sources_used.length > 0) {
+      aiSources.style.display = 'flex';
+      aiSourceChips.innerHTML = '';
+      data.sources_used.forEach(src => {
+        const chip = document.createElement('button');
+        chip.className = 'source-chip';
+        chip.textContent = src;
+        chip.setAttribute('aria-label', `Source: ${src}`);
+        chip.addEventListener('click', () => {
+          // Try to find and highlight matching card
+          const idx = state.results.findIndex(r => r.passage_id === src);
+          if (idx !== -1) scrollToCard(idx);
+        });
+        aiSourceChips.appendChild(chip);
+      });
+    }
+  }
+
+  // ── Render search results ──────────────────────────────────────
+  function renderResults(data) {
+    resultsLoading.style.display = 'none';
+
+    const results = data.results || [];
+    resultsCount.innerHTML = `<strong>${results.length}</strong> results`;
+    resultsSystem.textContent = data.system || '';
+
+    if (results.length === 0) {
+      resultsCount.innerHTML = 'No results found';
+      return;
+    }
+
+    results.forEach((item, idx) => {
+      const card = buildResultCard(item, idx);
+      resultsList.appendChild(card);
+    });
+  }
+
+  // ── Build a result card element ────────────────────────────────
+  function buildResultCard(item, idx) {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.setAttribute('role', 'listitem');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `Result ${idx + 1}: ${item.passage_id}`);
+    card.style.animationDelay = `${idx * 60}ms`;
+
+    const score = typeof item.score === 'number' ? item.score : 0;
+    const scorePct = Math.min(Math.round(score * 100), 100);
+    const scoreDisplay = score < 10 ? score.toFixed(4) : score.toFixed(0);
+
+    card.innerHTML = `
+      <div class="result-card__meta">
+        <span class="result-card__id">${escHtml(item.passage_id)}</span>
+        <div class="score-bar-wrap">
+          <span class="score-value mono">${scoreDisplay}</span>
+          <div class="score-bar" role="meter" aria-valuenow="${scorePct}" aria-valuemin="0" aria-valuemax="100" aria-label="Relevance score">
+            <div class="score-bar__fill" style="width: ${scorePct}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="result-card__doc">${escHtml(item.document_name)}</div>
+      <p class="result-card__text">${escHtml(item.text)}</p>
+      <div class="result-card__action">↗ Open full document</div>
+    `;
+
+    const activate = () => {
+      // Mark active
+      document.querySelectorAll('.result-card').forEach(c => c.classList.remove('--active'));
+      card.classList.add('--active');
+      state.activeCardIndex = idx;
+      state.activeSnippet   = item.text;
+
+      // Load document
+      loadDocument(item.document_name, item.text);
+    };
+
+    card.addEventListener('click', activate);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+    });
+
+    return card;
+  }
+
+  // ── Load full document ─────────────────────────────────────────
+  async function loadDocument(filename, snippet) {
+    openDocPane();
+    docPaneTitle.textContent = filename;
+    docEmpty.style.display = 'none';
+    docError.style.display = 'none';
+    docContent.style.display = 'none';
+    docLoading.style.display = 'block';
+
+    const params = new URLSearchParams({ filename });
+
+    try {
+      const res = await fetch(`${BASE_URL}/document?${params}`);
+      if (res.status === 404) throw new Error(`Document "${filename}" not found.`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json();
+      renderDocContent(data.content, snippet);
+    } catch (err) {
+      console.error('[Document]', err);
+      docLoading.style.display = 'none';
+      docError.style.display = 'flex';
+      docErrorMsg.textContent = err.message;
+    }
+  }
+
+  // ── Render document with highlighted snippet ───────────────────
+  function renderDocContent(content, snippet) {
+    docLoading.style.display = 'none';
+    docContent.style.display = 'block';
+    docContent.innerHTML = '';
+    docMinimap.innerHTML = '';
+
+    const sections = parseDocumentSections(content);
+    const sectionEls = [];
+    let highlightedEl = null;
+
+    sections.forEach((section, idx) => {
+      const sectionEl = document.createElement('section');
+      sectionEl.className = 'doc-section';
+      sectionEl.id = `doc-sec-${idx}`;
+
+      if (section.title) {
+        const titleEl = document.createElement('div');
+        titleEl.className = 'doc-section__title';
+        titleEl.textContent = section.number ? `${section.number} ${section.title}` : section.title;
+        sectionEl.appendChild(titleEl);
+      }
+
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'doc-section__body';
+
+      const bodyText = section.body.join('\n');
+      if (snippet && bodyText.includes(snippet) && !highlightedEl) {
+        const idxMatch = bodyText.indexOf(snippet);
+        const before = bodyText.slice(0, idxMatch);
+        const after = bodyText.slice(idxMatch + snippet.length);
+        bodyEl.appendChild(document.createTextNode(before));
+        const mark = document.createElement('mark');
+        mark.className = 'doc-pane__highlight';
+        mark.textContent = snippet;
+        bodyEl.appendChild(mark);
+        bodyEl.appendChild(document.createTextNode(after));
+        highlightedEl = mark;
+      } else {
+        bodyEl.textContent = bodyText;
+      }
+
+      sectionEl.appendChild(bodyEl);
+      docContent.appendChild(sectionEl);
+      sectionEls.push(sectionEl);
+    });
+
+    buildMinimap(sections);
+
+    if (highlightedEl) {
+      requestAnimationFrame(() => {
+        highlightedEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }
+
+  function parseDocumentSections(content) {
+    const lines = content.split(/\r?\n/);
+    const sections = [];
+    let current = { title: null, number: null, body: [] };
+
+    lines.forEach((line) => {
+      const heading = extractHeading(line);
+      if (heading) {
+        if (current.title || current.body.length) {
+          sections.push(current);
+        }
+        current = { title: heading.title, number: heading.number, body: [] };
+      } else {
+        current.body.push(line);
+      }
+    });
+
+    if (current.title || current.body.length) {
+      sections.push(current);
+    }
+
+    return sections;
+  }
+
+  function extractHeading(line) {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    if (/^\d+(?:\.\d+)*\.\(\d+\)/.test(trimmed)) return null;
+
+    const match = trimmed.match(/^(\d+(?:\.\d+)*)(?:\.)?\s+(.+)$/);
+    if (!match) return null;
+
+    const number = match[1];
+    const title = match[2].trim();
+    if (!title) return null;
+    if (/^\([a-zA-Z0-9]+\)/.test(title)) return null;
+
+    const words = title.split(/\s+/).filter(Boolean);
+    const letters = title.replace(/[^A-Za-z]/g, '');
+    const upperCount = letters.split('').filter(ch => ch === ch.toUpperCase()).length;
+    const upperRatio = letters.length ? upperCount / letters.length : 0;
+    const isUpper = upperRatio >= 0.7;
+    const isShortTitle = words.length <= 6 && title[0] === title[0].toUpperCase();
+
+    if (!isUpper && !isShortTitle) return null;
+
+    return { number, title };
+  }
+
+  function buildMinimap(sections) {
+    const items = sections
+      .map((section, idx) => ({
+        id: `doc-sec-${idx}`,
+        title: section.title,
+        number: section.number,
+      }))
+      .filter(item => item.title);
+
+    if (items.length === 0) {
+      docMinimap.classList.remove('--ready');
+      return;
+    }
+
+    docMinimap.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'doc-minimap__title';
+    header.textContent = 'Outline';
+    docMinimap.appendChild(header);
+
+    items.forEach((item) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'doc-minimap__item';
+      btn.textContent = item.number ? `${item.number} ${item.title}` : item.title;
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(item.id);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+      docMinimap.appendChild(btn);
+    });
+
+    docMinimap.classList.add('--ready');
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function showAiThinking() {
+    aiThinking.style.display = 'block';
+    aiAnswerText.style.display = 'none';
+    aiError.style.display = 'none';
+    aiSources.style.display = 'none';
+  }
+
+  function showAiError() {
+    aiThinking.style.display = 'none';
+    aiAnswerText.style.display = 'none';
+    aiError.style.display = 'flex';
+  }
+
+  function showResultsLoading() {
+    resultsLoading.style.display = 'block';
+    resultsList.innerHTML = '';
+    resultsCount.innerHTML = '';
+    resultsSystem.textContent = '';
+  }
+
+  function clearResults() {
+    resultsList.innerHTML = '';
+  }
+
+  function resetDocPane() {
+    docPaneTitle.textContent = 'No document selected';
+    docLoading.style.display = 'none';
+    docContent.style.display = 'none';
+    docError.style.display = 'none';
+    docEmpty.style.display = 'flex';
+    docMinimap.innerHTML = '';
+    docMinimap.classList.remove('--ready');
+  }
+
+  function openDocPane() {
+    docPane.classList.add('--open');
+    docPane.setAttribute('aria-hidden', 'false');
+    docBackdrop.classList.add('--visible');
+  }
+
+  function closeDocPane() {
+    docPane.classList.remove('--open', '--full');
+    docPane.setAttribute('aria-hidden', 'true');
+    docBackdrop.classList.remove('--visible');
+    docPaneExpand.setAttribute('aria-pressed', 'false');
+    docPaneExpand.textContent = 'Full width';
+  }
+
+  function toggleDocPaneSize() {
+    const isFull = docPane.classList.toggle('--full');
+    docPaneExpand.setAttribute('aria-pressed', isFull ? 'true' : 'false');
+    docPaneExpand.textContent = isFull ? 'Half width' : 'Full width';
+  }
+
+  function hideErrors() {
+    searchError.style.display = 'none';
+    aiError.style.display = 'none';
+  }
+
+  function scrollToCard(idx) {
+    const cards = document.querySelectorAll('.result-card');
+    if (cards[idx]) {
+      cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      cards[idx].click();
+    }
+  }
+
+  function updateQueryCounter() {
+    state.queryCount++;
+    queryCounter.style.display = 'flex';
+    queryCounter.querySelector('span').textContent = `${state.queryCount} quer${state.queryCount === 1 ? 'y' : 'ies'}`;
+  }
+
+  function escHtml(str) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(str)));
+    return d.innerHTML;
+  }
+
+  // ── Keyboard shortcut: / focuses search ───────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== queryInput) {
+      e.preventDefault();
+      queryInput.focus();
+      queryInput.select();
+    }
+
+    if (e.key === 'Escape' && docPane.classList.contains('--open')) {
+      closeDocPane();
+    }
+  });
+</script>

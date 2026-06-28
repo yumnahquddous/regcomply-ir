@@ -1,0 +1,10 @@
+backend/venv/
+data/ObliQADataset/
+backend/app/__pycache__/
+backend/data/processed/*
+backend/data/raw/*
+backend/.env
+
+# ignore pycache and virtual environment everywhere
+**/__pycache__/
+**/venv/
